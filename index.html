@@ -252,6 +252,15 @@
     object-fit:cover; object-position:center 18%;
     z-index:0;
   }
+  /* Background videos: never show native play/pause controls */
+  .bg-video{ pointer-events:none; }
+  .bg-video::-webkit-media-controls,
+  .bg-video::-webkit-media-controls-panel,
+  .bg-video::-webkit-media-controls-play-button,
+  .bg-video::-webkit-media-controls-start-playback-button,
+  .bg-video::-webkit-media-controls-overlay-play-button{
+    display:none !important; -webkit-appearance:none; opacity:0;
+  }
   .hero::before{ /* top scrim for legibility */
     content:""; position:absolute; inset:0 0 auto 0; height:42%;
     background:linear-gradient(to bottom, rgba(255,251,240,.55), rgba(255,251,240,0));
@@ -498,7 +507,7 @@
        HERO
   ============================================================ -->
   <section class="hero">
-    <video class="poster-vid" autoplay muted loop playsinline poster="assets/hero-photo.jpg">
+    <video class="poster-vid bg-video" autoplay muted loop playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback controlslist="nodownload nofullscreen noremoteplayback">
       <source src="assets/hero-video.mp4" type="video/mp4">
     </video>
 
@@ -596,7 +605,7 @@
   ============================================================ -->
   <section class="details fade-in">
     <div class="details-frame">
-      <video autoplay muted loop playsinline id="detailsVideo" poster="assets/event-details-poster.jpg">
+      <video class="bg-video" autoplay muted loop playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback controlslist="nodownload nofullscreen noremoteplayback" id="detailsVideo">
         <source src="assets/event-details.mp4" type="video/mp4">
       </video>
       <div class="details-content">
@@ -760,6 +769,28 @@ introScreen.addEventListener('click', ()=>{
   if(playPromise && playPromise.catch) playPromise.catch(openInvitation);
 });
 introVideo.addEventListener('ended', openInvitation);
+
+/* ---------------------------------------------------------------
+   Background videos — keep them playing at all times
+--------------------------------------------------------------- */
+const bgVideos = document.querySelectorAll('video.bg-video');
+function playBgVideos(){
+  bgVideos.forEach(v=>{
+    v.muted = true;
+    v.removeAttribute('controls');
+    if(v.paused){ const p = v.play(); if(p && p.catch) p.catch(()=>{}); }
+  });
+}
+bgVideos.forEach(v=>{
+  v.addEventListener('pause', ()=>{ if(!document.hidden) setTimeout(playBgVideos, 50); });
+  v.addEventListener('canplay', playBgVideos);
+});
+['touchstart','click','scroll'].forEach(ev=>
+  window.addEventListener(ev, playBgVideos, {passive:true})
+);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) playBgVideos(); });
+window.addEventListener('load', playBgVideos);
+playBgVideos();
 
 /* ---------------------------------------------------------------
    Scroll affordances
